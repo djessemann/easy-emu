@@ -18,5 +18,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "comment": "sw.ts is compiled by vite-plugin-pwa (injectManifest) with WebWorker libs, not by the app project.",
+  "exclude": ["src/sw.ts"]
 }

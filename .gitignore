@@ -3,6 +3,9 @@ dist
 dist-ssr
 *.local
 *.tsbuildinfo
+
+# Generated at build time from the @emulatorjs/* packages (see scripts/vendor-emulatorjs.mjs)
+public/ejs-data
 .env
 .env.*
 !.env.example

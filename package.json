@@ -6,6 +6,8 @@
   "description": "A dead-simple mobile emulator for NES, SNES, Genesis and Game Boy.",
   "scripts": {
     "dev": "vite",
+    "vendor": "node scripts/vendor-emulatorjs.mjs",
+    "prebuild": "node scripts/vendor-emulatorjs.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit"
@@ -16,6 +18,11 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@emulatorjs/core-fceumm": "4.2.3",
+    "@emulatorjs/core-gambatte": "4.2.3",
+    "@emulatorjs/core-genesis_plus_gx": "4.2.3",
+    "@emulatorjs/core-snes9x": "4.2.3",
+    "@emulatorjs/emulatorjs": "4.2.3",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",

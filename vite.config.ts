@@ -9,12 +9,14 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // "prompt" registration keeps the service worker PASSIVE: a newly
-      // deployed worker installs in the background and only takes over once
-      // every tab is closed (no skipWaiting / clientsClaim). This is
-      // deliberate — an auto-updating worker can claim and reload a live page
-      // mid-session, which looked like the game "reloading back to the menu".
-      registerType: "prompt",
+      // Custom service worker (src/sw.ts) so we can serve the app shell
+      // network-first — see that file for why. The self-hosted EmulatorJS
+      // engine + cores (public/ejs-data, built by scripts/vendor-emulatorjs.mjs)
+      // are precached alongside the shell, so the app plays fully offline.
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
+      registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "icon.svg"],
       manifest: {
         name: "easy-emu",
@@ -36,35 +38,12 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
-        // Precache the whole app shell so the home-screen app boots offline.
-        globPatterns: ["**/*.{js,css,html,svg,woff2,wasm}"],
-        cleanupOutdatedCaches: true,
-        // Single-page app: any offline navigation falls back to the shell.
-        navigateFallback: "index.html",
-        runtimeCaching: [
-          {
-            // The EmulatorJS engine + cores are pulled from the CDN at runtime.
-            // StaleWhileRevalidate serves the cached copy instantly (so each
-            // system keeps working offline once played online) while quietly
-            // refreshing it in the background — so a flaky or partial download
-            // self-heals on the next load instead of sticking forever. Only
-            // real 200s are cached (never opaque/partial responses), which is
-            // what was previously corrupting cores. ROMs and save states live
-            // in IndexedDB, so they're offline regardless.
-            urlPattern: /^https:\/\/cdn\.emulatorjs\.org\/.*/i,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "emulatorjs-cdn-v2",
-              cacheableResponse: { statuses: [200] },
-              rangeRequests: true,
-              expiration: {
-                maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 90, // 90 days
-              },
-            },
-          },
-        ],
+      injectManifest: {
+        // Precache the app shell + the self-hosted engine/cores. Core wasm
+        // bundles are ~1-1.3 MB each, so lift the per-file cap above the 2 MB
+        // default.
+        globPatterns: ["**/*.{js,css,html,svg,woff2,json,data,wasm}"],
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
       },
     }),
   ],

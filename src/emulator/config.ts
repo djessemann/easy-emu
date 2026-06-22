@@ -1,10 +1,11 @@
 /**
  * Where the EmulatorJS engine + cores are loaded from at runtime.
  *
- * Defaults to the public EmulatorJS CDN, which works for the web app on any
- * device. For the offline / native iOS build (Capacitor), self-host the
- * EmulatorJS `data` folder and point this at it via the VITE_EJS_DATA_PATH
- * environment variable (it must end with a trailing slash).
+ * Defaults to the self-hosted `ejs-data` folder, which is assembled at build
+ * time from the @emulatorjs/* npm packages (see scripts/vendor-emulatorjs.mjs)
+ * and precached by the service worker — so the app plays fully offline. The
+ * engine still falls back to the EmulatorJS CDN at runtime for anything not
+ * vendored locally. Override with VITE_EJS_DATA_PATH (must end in a slash).
  */
 export const EJS_DATA_PATH: string =
-  import.meta.env.VITE_EJS_DATA_PATH ?? "https://cdn.emulatorjs.org/stable/data/";
+  import.meta.env.VITE_EJS_DATA_PATH ?? "./ejs-data/";
