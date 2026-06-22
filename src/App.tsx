@@ -26,11 +26,13 @@ export default function App() {
     void refresh();
   }, [refresh]);
 
-  // Exiting a game reloads the app: EmulatorJS can't be torn down reliably in
-  // place, and a reload back to the (IndexedDB-backed) library is instant.
+  // Exiting a game just drops back to the library. The emulator runs inside an
+  // iframe (see Player), so unmounting it tears the whole session down cleanly
+  // — no full-page reload, which is what was leaving iOS Safari on a blank tab.
   const handleExit = useCallback(() => {
-    window.location.reload();
-  }, []);
+    setLaunch(null);
+    void refresh();
+  }, [refresh]);
 
   if (launch) {
     return (

@@ -12,14 +12,19 @@ interface PlayerProps {
 }
 
 /**
- * Hosts a single EmulatorJS session. The in-game menu is stripped down to just
- * save/load (no settings, speed, resolution, etc.); the same actions are also
- * exposed on our own top bar so they're reachable outside the in-game menu.
- * Exiting reloads the app (the library lives in IndexedDB, so it's instant),
- * which guarantees a clean teardown of the emulator.
+ * Hosts a single EmulatorJS session inside an isolated <iframe>.
+ *
+ * The iframe is the key to a clean exit: EmulatorJS has no reliable teardown,
+ * so when the user leaves we simply unmount the frame and the browser reclaims
+ * the entire session (JS, WebGL, WASM, audio, the animation loop) at once. The
+ * parent app never reloads — which matters on iOS Safari, where reloading right
+ * after a WebGL/WASM session frequently leaves the tab stuck on a blank screen.
+ *
+ * The frame is same-origin (an about:blank document we write into), so we can
+ * still drive save/load by reaching straight into its window.
  */
 export function Player({ game, autoLoad, onExit }: PlayerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLIFrameElement>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
@@ -30,23 +35,49 @@ export function Player({ game, autoLoad, onExit }: PlayerProps) {
     window.setTimeout(() => setToast(null), 1600);
   }
 
+  /** The emulator instance lives on the iframe's window, not ours. */
+  function emulatorWindow(): (Window & typeof globalThis) | null {
+    return (frameRef.current?.contentWindow as typeof window) ?? null;
+  }
+
   useEffect(() => {
+    const frame = frameRef.current;
+    const win = frame?.contentWindow as (Window & Record<string, unknown>) | null;
+    const doc = frame?.contentDocument;
+    if (!win || !doc) {
+      setStatus("error");
+      return;
+    }
+
     const sys = SYSTEMS[game.system];
     const romUrl = URL.createObjectURL(game.data);
 
-    window.EJS_player = "#game";
-    window.EJS_core = sys.core;
-    window.EJS_gameUrl = romUrl;
-    window.EJS_gameName = game.name;
-    window.EJS_pathtodata = EJS_DATA_PATH;
-    window.EJS_startOnLoaded = true;
-    window.EJS_color = sys.color;
-    window.EJS_backgroundColor = "#000";
+    // A minimal black document for the emulator to mount into. Pixel scaling is
+    // declared here because the parent stylesheet doesn't reach inside the frame.
+    doc.open();
+    doc.write(
+      `<!doctype html><html><head>` +
+        `<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">` +
+        `<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}` +
+        `#game{width:100%;height:100%}` +
+        `#game canvas{image-rendering:pixelated;image-rendering:crisp-edges}</style>` +
+        `</head><body><div id="game"></div></body></html>`,
+    );
+    doc.close();
+
+    win.EJS_player = "#game";
+    win.EJS_core = sys.core;
+    win.EJS_gameUrl = romUrl;
+    win.EJS_gameName = game.name;
+    win.EJS_pathtodata = EJS_DATA_PATH;
+    win.EJS_startOnLoaded = true;
+    win.EJS_color = sys.color;
+    win.EJS_backgroundColor = "#000";
 
     // Keep the in-game menu minimal: only pause and save/load. Everything else
     // (settings, speed, shaders, controller remap, cheats, screenshots, …) is
     // hidden so there's nothing to fiddle with.
-    window.EJS_Buttons = {
+    win.EJS_Buttons = {
       playPause: true,
       saveState: true,
       loadState: true,
@@ -70,28 +101,31 @@ export function Player({ game, autoLoad, onExit }: PlayerProps) {
       contextMenu: false,
     };
 
-    window.EJS_onGameStart = () => {
+    win.EJS_onGameStart = () => {
       setStatus("ready");
       if (autoLoad) {
         // Give the core a beat to settle before injecting the state.
-        window.setTimeout(() => void handleLoad(true), 600);
+        win.setTimeout(() => void handleLoad(true), 600);
       }
     };
 
-    if (!document.getElementById("ejs-loader")) {
-      const script = document.createElement("script");
-      script.id = "ejs-loader";
-      script.src = `${EJS_DATA_PATH}loader.js`;
-      script.async = true;
-      script.onerror = () => setStatus("error");
-      document.body.appendChild(script);
-    }
+    const script = doc.createElement("script");
+    script.src = `${EJS_DATA_PATH}loader.js`;
+    script.async = true;
+    script.onerror = () => setStatus("error");
+    doc.body.appendChild(script);
+
+    return () => {
+      URL.revokeObjectURL(romUrl);
+      // The frame (and the whole emulator session inside it) is torn down by
+      // React unmounting the iframe element — nothing else to clean up.
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game]);
 
   async function handleSave() {
     try {
-      const getState = window.EJS_emulator?.gameManager?.getState;
+      const getState = emulatorWindow()?.EJS_emulator?.gameManager?.getState;
       if (!getState) throw new Error("not ready");
       const raw = await getState();
       await saveState(game.id, new Blob([raw as BlobPart]));
@@ -108,7 +142,7 @@ export function Player({ game, autoLoad, onExit }: PlayerProps) {
         if (!silentIfMissing) flash("No save yet");
         return;
       }
-      const loadState = window.EJS_emulator?.gameManager?.loadState;
+      const loadState = emulatorWindow()?.EJS_emulator?.gameManager?.loadState;
       if (!loadState) throw new Error("not ready");
       await loadState(new Uint8Array(await blob.arrayBuffer()));
       flash("Loaded");
@@ -143,7 +177,12 @@ export function Player({ game, autoLoad, onExit }: PlayerProps) {
       </div>
 
       <div className="player__stage">
-        <div id="game" ref={containerRef} className="player__game" />
+        <iframe
+          ref={frameRef}
+          className="player__game"
+          title={game.name}
+          allow="autoplay; fullscreen; gamepad"
+        />
         {status === "loading" && (
           <div className="player__overlay">Loading core…</div>
         )}
