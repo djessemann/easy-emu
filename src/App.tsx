@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Game } from "./types";
-import { listGames, listStateIds } from "./storage";
+import { listGames, listStateIds, markPlayed } from "./storage";
 import { Library } from "./components/Library";
 import { Player } from "./components/Player";
 
@@ -34,6 +34,12 @@ export default function App() {
     void refresh();
   }, [refresh]);
 
+  // Launch a game and stamp it as recently played (drives the Recents filter).
+  const launchGame = useCallback((game: Game, autoLoad: boolean) => {
+    void markPlayed(game.id);
+    setLaunch({ game, autoLoad });
+  }, []);
+
   if (launch) {
     return (
       <Player
@@ -52,8 +58,8 @@ export default function App() {
     <Library
       games={games}
       savedIds={savedIds}
-      onPlay={(game) => setLaunch({ game, autoLoad: false })}
-      onResume={(game) => setLaunch({ game, autoLoad: true })}
+      onPlay={(game) => launchGame(game, false)}
+      onResume={(game) => launchGame(game, true)}
       onChanged={refresh}
     />
   );

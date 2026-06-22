@@ -59,6 +59,22 @@ export async function getGame(id: string): Promise<Game | undefined> {
   return (await db()).get("games", id);
 }
 
+/** Star / unstar a game (Favorites filter). No-op if the game is gone. */
+export async function setFavorite(id: string, favorite: boolean): Promise<void> {
+  const database = await db();
+  const game = await database.get("games", id);
+  if (!game) return;
+  await database.put("games", { ...game, favorite });
+}
+
+/** Record that a game was just launched (Recents filter). */
+export async function markPlayed(id: string): Promise<void> {
+  const database = await db();
+  const game = await database.get("games", id);
+  if (!game) return;
+  await database.put("games", { ...game, lastPlayedAt: Date.now() });
+}
+
 /* ---- save states (single slot per game) ---- */
 
 export async function saveState(gameId: string, data: Blob): Promise<void> {

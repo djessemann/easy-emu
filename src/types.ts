@@ -25,4 +25,8 @@ export interface Game {
   /** Raw ROM bytes. */
   data: Blob;
   addedAt: number;
+  /** Whether the user has starred this game (for the Favorites filter). */
+  favorite?: boolean;
+  /** Timestamp of the last launch (for the Recents filter). Unset if never played. */
+  lastPlayedAt?: number;
 }
