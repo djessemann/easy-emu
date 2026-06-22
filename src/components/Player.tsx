@@ -3,6 +3,7 @@ import type { Game } from "../types";
 import { SYSTEMS } from "../systems";
 import { EJS_DATA_PATH } from "../emulator/config";
 import { getStateBlob, saveState } from "../storage";
+import { logDiag } from "../diag";
 
 interface PlayerProps {
   game: Game;
@@ -101,19 +102,23 @@ export function Player({ game, autoLoad, onExit }: PlayerProps) {
   useEffect(() => {
     function onMessage(e: MessageEvent) {
       if (e.source !== frameRef.current?.contentWindow) return;
-      const data = e.data as { type?: string } | null;
+      const data = e.data as { type?: string; message?: string } | null;
       if (!data || typeof data !== "object") return;
       if (data.type === "ejs-started") {
+        logDiag(`emulator started: ${game.name}`);
         setStatus("ready");
         // Give the core a beat to settle before injecting a saved state.
         if (autoLoad) window.setTimeout(() => void handleLoad(true), 600);
       } else if (data.type === "ejs-error") {
+        logDiag(`emulator error: ${game.name}`);
         setStatus("error");
+      } else if (data.type === "ejs-log") {
+        logDiag(String(data.message));
       }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [autoLoad, handleLoad]);
+  }, [autoLoad, handleLoad, game.name]);
 
   // Once the frame's document has loaded (so its message listener is live),
   // hand it the ROM bytes + config. The ArrayBuffer is transferred to avoid a

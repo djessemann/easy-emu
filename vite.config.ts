@@ -9,9 +9,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // Auto-update the cached app shell on each deploy (skipWaiting +
-      // clientsClaim under the hood) so users never get stuck on a stale build.
-      registerType: "autoUpdate",
+      // "prompt" registration keeps the service worker PASSIVE: a newly
+      // deployed worker installs in the background and only takes over once
+      // every tab is closed (no skipWaiting / clientsClaim). This is
+      // deliberate — an auto-updating worker can claim and reload a live page
+      // mid-session, which looked like the game "reloading back to the menu".
+      registerType: "prompt",
       includeAssets: ["favicon.svg", "icon.svg"],
       manifest: {
         name: "easy-emu",

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import type { Game } from "../types";
 import { SYSTEMS, detectSystem, titleFromFileName } from "../systems";
 import { addGame, deleteGame } from "../storage";
+import { DEBUG_ENABLED, clearDiag, readDiag } from "../diag";
 
 interface LibraryProps {
   games: Game[];
@@ -20,6 +21,7 @@ export function Library({
 }: LibraryProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [diag, setDiag] = useState<string[]>(() => readDiag());
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -86,6 +88,26 @@ export function Library({
       </header>
 
       {importError && <p className="library__error">{importError}</p>}
+
+      {DEBUG_ENABLED && (
+        <section className="diag">
+          <div className="diag__head">
+            <strong>Diagnostics</strong>
+            <button
+              className="btn btn--ghost"
+              onClick={() => {
+                clearDiag();
+                setDiag([]);
+              }}
+            >
+              Clear
+            </button>
+          </div>
+          <pre className="diag__log">
+            {diag.length ? diag.join("\n") : "(nothing recorded yet)"}
+          </pre>
+        </section>
+      )}
 
       {games.length === 0 ? (
         <div className="empty">

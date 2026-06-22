@@ -36,6 +36,19 @@
       // origin document (rather than writing into about:blank) avoids an iOS
       // Safari race where the frame's document gets reset out from under us.
       (function () {
+        function report(msg) {
+          parent.postMessage({ type: "ejs-log", message: String(msg) }, "*");
+        }
+        // Surface anything that goes wrong inside the frame so the parent can
+        // log it (and tell whether a crash here preceded a reload).
+        window.addEventListener("error", function (e) {
+          report("frame error: " + (e.message || "script error"));
+        });
+        window.addEventListener("unhandledrejection", function (e) {
+          var r = e.reason;
+          report("frame rejection: " + ((r && r.message) || r));
+        });
+
         function start(cfg) {
           window.EJS_player = "#game";
           window.EJS_core = cfg.core;
@@ -52,6 +65,7 @@
           var s = document.createElement("script");
           s.src = cfg.dataPath + "loader.js";
           s.onerror = function () {
+            report("loader.js failed to download");
             parent.postMessage({ type: "ejs-error" }, "*");
           };
           document.body.appendChild(s);
