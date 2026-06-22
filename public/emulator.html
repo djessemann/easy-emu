@@ -60,6 +60,15 @@
           window.EJS_Buttons = cfg.buttons;
           window.EJS_gameUrl = URL.createObjectURL(new Blob([cfg.rom]));
           window.EJS_onGameStart = function () {
+            // EmulatorJS pops its control bar open for 3s on start, which gets
+            // in the way. We have our own top bar, so close it immediately (the
+            // "start" event fires right after the engine opens it). Tapping the
+            // screen still toggles the bar if it's ever wanted.
+            try {
+              window.EJS_emulator.menu.close();
+            } catch (e) {
+              /* ignore — older engine without menu.close */
+            }
             parent.postMessage({ type: "ejs-started" }, "*");
           };
           var s = document.createElement("script");

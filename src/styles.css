@@ -200,7 +200,26 @@ code {
   flex-direction: column;
   gap: 8px;
 }
+/* Each row is a horizontal scroll-snap track: the surface fills the width and
+   a Delete panel sits just off-screen to the right. Swiping the row left
+   reveals it (native iOS-style swipe-to-delete, no JS gesture handling). */
 .rom {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  border-radius: 12px;
+  background: #e5484d; /* shows behind as the delete affordance */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-x: contain;
+}
+.rom::-webkit-scrollbar {
+  display: none;
+}
+.rom__surface {
+  flex: 0 0 100%;
+  box-sizing: border-box;
+  scroll-snap-align: start;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -274,15 +293,13 @@ code {
   padding: 7px 12px;
 }
 .rom__delete {
+  flex: 0 0 88px;
+  scroll-snap-align: end;
   border: none;
-  background: #2a3040;
-  color: var(--text);
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  display: grid;
-  place-items: center;
+  background: #e5484d;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 
 /* ---- player ---- */

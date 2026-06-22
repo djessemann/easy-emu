@@ -172,38 +172,43 @@ export function Library({
             const fav = !!game.favorite;
             return (
               <li key={game.id} className="rom">
-                <button className="rom__main" onClick={() => onPlay(game)}>
-                  <span className="rom__tag" style={{ background: sys.color }}>
-                    {sys.tag}
-                  </span>
-                  <span className="rom__name">{game.name}</span>
-                  {hasSave && <span className="rom__saved">● saved</span>}
-                </button>
-                <div className="rom__actions">
-                  <button
-                    className={`rom__fav${fav ? " rom__fav--on" : ""}`}
-                    aria-pressed={fav}
-                    aria-label={fav ? "Remove from favorites" : "Add to favorites"}
-                    onClick={() => handleToggleFavorite(game)}
-                  >
-                    {fav ? "★" : "☆"}
+                <div className="rom__surface">
+                  <button className="rom__main" onClick={() => onPlay(game)}>
+                    <span className="rom__tag" style={{ background: sys.color }}>
+                      {sys.tag}
+                    </span>
+                    <span className="rom__name">{game.name}</span>
+                    {hasSave && <span className="rom__saved">● saved</span>}
                   </button>
-                  {hasSave && (
+                  <div className="rom__actions">
                     <button
-                      className="rom__resume"
-                      onClick={() => onResume(game)}
+                      className={`rom__fav${fav ? " rom__fav--on" : ""}`}
+                      aria-pressed={fav}
+                      aria-label={
+                        fav ? "Remove from favorites" : "Add to favorites"
+                      }
+                      onClick={() => handleToggleFavorite(game)}
                     >
-                      Resume
+                      {fav ? "★" : "☆"}
                     </button>
-                  )}
-                  <button
-                    className="rom__delete"
-                    aria-label={`Remove ${game.name}`}
-                    onClick={() => handleDelete(game)}
-                  >
-                    ✕
-                  </button>
+                    {hasSave && (
+                      <button
+                        className="rom__resume"
+                        onClick={() => onResume(game)}
+                      >
+                        Resume
+                      </button>
+                    )}
+                  </div>
                 </div>
+                {/* Revealed by swiping the row left (native scroll-snap). */}
+                <button
+                  className="rom__delete"
+                  aria-label={`Delete ${game.name}`}
+                  onClick={() => handleDelete(game)}
+                >
+                  Delete
+                </button>
               </li>
             );
           })}
