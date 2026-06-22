@@ -1,15 +1,24 @@
 /**
- * Minimal typings for the EmulatorJS global configuration variables we set.
- * EmulatorJS is configured entirely through `window.EJS_*` globals that its
- * loader script reads on startup. See https://emulatorjs.org/docs/options.
+ * Minimal typings for the EmulatorJS global configuration variables and the
+ * runtime instance we interact with. EmulatorJS is configured through
+ * `window.EJS_*` globals read by its loader script.
+ * See https://emulatorjs.org/docs/options.
  */
 export {};
 
+interface EJSGameManager {
+  /** Returns the current save state as raw bytes (may be sync or async). */
+  getState?: () => Uint8Array | Promise<Uint8Array>;
+  /** Restores a save state from raw bytes. */
+  loadState?: (state: Uint8Array) => void | Promise<void>;
+  [key: string]: unknown;
+}
+
 interface EJSEmulator {
-  /** Tear-down hook exposed by EmulatorJS to stop and clean up the instance. */
-  callEvent?: (event: string) => void;
+  gameManager?: EJSGameManager;
   elements?: { parent?: HTMLElement };
   pause?: () => void;
+  play?: () => void;
   [key: string]: unknown;
 }
 
@@ -24,7 +33,9 @@ declare global {
     EJS_color?: string;
     EJS_backgroundColor?: string;
     EJS_volume?: number;
+    EJS_threads?: boolean;
     EJS_defaultOptions?: Record<string, string>;
+    /** Show/hide individual menu buttons. */
     EJS_Buttons?: Record<string, boolean>;
     EJS_onGameStart?: () => void;
     EJS_emulator?: EJSEmulator;

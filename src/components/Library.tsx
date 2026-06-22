@@ -5,11 +5,19 @@ import { addGame, deleteGame } from "../storage";
 
 interface LibraryProps {
   games: Game[];
+  savedIds: Set<string>;
   onPlay: (game: Game) => void;
+  onResume: (game: Game) => void;
   onChanged: () => void;
 }
 
-export function Library({ games, onPlay, onChanged }: LibraryProps) {
+export function Library({
+  games,
+  savedIds,
+  onPlay,
+  onResume,
+  onChanged,
+}: LibraryProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -91,6 +99,7 @@ export function Library({ games, onPlay, onChanged }: LibraryProps) {
         <ul className="grid">
           {games.map((game) => {
             const sys = SYSTEMS[game.system];
+            const hasSave = savedIds.has(game.id);
             return (
               <li key={game.id} className="card">
                 <button
@@ -105,7 +114,16 @@ export function Library({ games, onPlay, onChanged }: LibraryProps) {
                     {sys.tag}
                   </span>
                   <span className="card__name">{game.name}</span>
+                  {hasSave && <span className="card__saved">● saved</span>}
                 </button>
+                {hasSave && (
+                  <button
+                    className="card__resume"
+                    onClick={() => onResume(game)}
+                  >
+                    Resume
+                  </button>
+                )}
                 <button
                   className="card__delete"
                   aria-label={`Remove ${game.name}`}

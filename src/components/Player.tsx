@@ -2,24 +2,33 @@ import { useEffect, useRef, useState } from "react";
 import type { Game } from "../types";
 import { SYSTEMS } from "../systems";
 import { EJS_DATA_PATH } from "../emulator/config";
+import { getStateBlob, saveState } from "../storage";
 
 interface PlayerProps {
   game: Game;
+  /** When true, load the game's saved state automatically once it starts. */
+  autoLoad: boolean;
   onExit: () => void;
 }
 
 /**
- * Hosts a single EmulatorJS session for one game. EmulatorJS is configured
- * through `window.EJS_*` globals and bootstrapped by its loader script. The
- * engine is hard to tear down cleanly, so exiting reloads the app (the library
- * lives in IndexedDB, so this is instant) — that guarantees no audio bleed or
- * double-initialisation when launching the next game.
+ * Hosts a single EmulatorJS session. The in-game menu is stripped down to just
+ * save/load (no settings, speed, resolution, etc.); the same actions are also
+ * exposed on our own top bar so they're reachable outside the in-game menu.
+ * Exiting reloads the app (the library lives in IndexedDB, so it's instant),
+ * which guarantees a clean teardown of the emulator.
  */
-export function Player({ game, onExit }: PlayerProps) {
+export function Player({ game, autoLoad, onExit }: PlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
+  const [toast, setToast] = useState<string | null>(null);
+
+  function flash(message: string) {
+    setToast(message);
+    window.setTimeout(() => setToast(null), 1600);
+  }
 
   useEffect(() => {
     const sys = SYSTEMS[game.system];
@@ -32,13 +41,43 @@ export function Player({ game, onExit }: PlayerProps) {
     window.EJS_pathtodata = EJS_DATA_PATH;
     window.EJS_startOnLoaded = true;
     window.EJS_color = sys.color;
-    window.EJS_backgroundColor = "#0f1115";
-    window.EJS_onGameStart = () => setStatus("ready");
+    window.EJS_backgroundColor = "#000";
 
-    // Inject the loader once. Exiting a game reloads the whole app, so we
-    // never tear EmulatorJS down in place and cleanup is intentionally
-    // minimal; this also makes the setup safe under StrictMode's dev
-    // double-invoke (the second pass just refreshes the globals).
+    // Keep the in-game menu minimal: only pause and save/load. Everything else
+    // (settings, speed, shaders, controller remap, cheats, screenshots, …) is
+    // hidden so there's nothing to fiddle with.
+    window.EJS_Buttons = {
+      playPause: true,
+      saveState: true,
+      loadState: true,
+      restart: false,
+      mute: false,
+      settings: false,
+      fullscreen: false,
+      screenRecord: false,
+      gamepad: false,
+      cheat: false,
+      volume: false,
+      saveSavFiles: false,
+      loadSavFiles: false,
+      quickSave: false,
+      quickLoad: false,
+      screenshot: false,
+      cacheManager: false,
+      exitEmulation: false,
+      netplay: false,
+      diskButton: false,
+      contextMenu: false,
+    };
+
+    window.EJS_onGameStart = () => {
+      setStatus("ready");
+      if (autoLoad) {
+        // Give the core a beat to settle before injecting the state.
+        window.setTimeout(() => void handleLoad(true), 600);
+      }
+    };
+
     if (!document.getElementById("ejs-loader")) {
       const script = document.createElement("script");
       script.id = "ejs-loader";
@@ -47,7 +86,36 @@ export function Player({ game, onExit }: PlayerProps) {
       script.onerror = () => setStatus("error");
       document.body.appendChild(script);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game]);
+
+  async function handleSave() {
+    try {
+      const getState = window.EJS_emulator?.gameManager?.getState;
+      if (!getState) throw new Error("not ready");
+      const raw = await getState();
+      await saveState(game.id, new Blob([raw as BlobPart]));
+      flash("Saved");
+    } catch {
+      flash("Couldn’t save yet");
+    }
+  }
+
+  async function handleLoad(silentIfMissing = false) {
+    try {
+      const blob = await getStateBlob(game.id);
+      if (!blob) {
+        if (!silentIfMissing) flash("No save yet");
+        return;
+      }
+      const loadState = window.EJS_emulator?.gameManager?.loadState;
+      if (!loadState) throw new Error("not ready");
+      await loadState(new Uint8Array(await blob.arrayBuffer()));
+      flash("Loaded");
+    } catch {
+      flash("Couldn’t load");
+    }
+  }
 
   return (
     <div className="player">
@@ -56,7 +124,22 @@ export function Player({ game, onExit }: PlayerProps) {
           ← Library
         </button>
         <span className="player__title">{game.name}</span>
-        <span className="player__tag">{SYSTEMS[game.system].tag}</span>
+        <div className="player__actions">
+          <button
+            className="btn btn--ghost"
+            onClick={handleSave}
+            disabled={status !== "ready"}
+          >
+            Save
+          </button>
+          <button
+            className="btn btn--ghost"
+            onClick={() => handleLoad()}
+            disabled={status !== "ready"}
+          >
+            Load
+          </button>
+        </div>
       </div>
 
       <div className="player__stage">
@@ -66,10 +149,11 @@ export function Player({ game, onExit }: PlayerProps) {
         )}
         {status === "error" && (
           <div className="player__overlay player__overlay--error">
-            Couldn’t load the emulator core. Check your connection (cores load
-            from the EmulatorJS CDN), then try again.
+            Couldn’t load the emulator core. Check your connection and try
+            again.
           </div>
         )}
+        {toast && <div className="player__toast">{toast}</div>}
       </div>
     </div>
   );

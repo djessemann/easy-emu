@@ -1,16 +1,24 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Game } from "./types";
-import { listGames } from "./storage";
+import { listGames, listStateIds } from "./storage";
 import { Library } from "./components/Library";
 import { Player } from "./components/Player";
 
+interface Launch {
+  game: Game;
+  autoLoad: boolean;
+}
+
 export default function App() {
   const [games, setGames] = useState<Game[]>([]);
-  const [playing, setPlaying] = useState<Game | null>(null);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [launch, setLaunch] = useState<Launch | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   const refresh = useCallback(async () => {
-    setGames(await listGames());
+    const [g, ids] = await Promise.all([listGames(), listStateIds()]);
+    setGames(g);
+    setSavedIds(new Set(ids));
     setLoaded(true);
   }, []);
 
@@ -24,13 +32,27 @@ export default function App() {
     window.location.reload();
   }, []);
 
-  if (playing) {
-    return <Player game={playing} onExit={handleExit} />;
+  if (launch) {
+    return (
+      <Player
+        game={launch.game}
+        autoLoad={launch.autoLoad}
+        onExit={handleExit}
+      />
+    );
   }
 
   if (!loaded) {
     return <div className="boot">Loading…</div>;
   }
 
-  return <Library games={games} onPlay={setPlaying} onChanged={refresh} />;
+  return (
+    <Library
+      games={games}
+      savedIds={savedIds}
+      onPlay={(game) => setLaunch({ game, autoLoad: false })}
+      onResume={(game) => setLaunch({ game, autoLoad: true })}
+      onChanged={refresh}
+    />
+  );
 }
