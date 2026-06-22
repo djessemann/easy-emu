@@ -4,6 +4,11 @@ A dead-simple, mobile-first emulator for **NES**, **Game Boy / Color**, **SNES**
 and **Sega Genesis**. Built as a web app first, with a clear path to a native
 iOS app.
 
+> **▶️ Try it live: https://djessemann.github.io/easy-emu/**
+> Open it on your iPhone (Safari → Share → *Add to Home Screen* for fullscreen),
+> tap **Add game**, and pick a ROM you own. The first launch needs internet
+> (the emulator cores stream from a CDN). _easy-emu ships no games._
+
 It's deliberately minimal — no per-core options, no shader menus, no
 remapping. Just: add a game → tap it → play. Think "Delta, but much simpler."
 
