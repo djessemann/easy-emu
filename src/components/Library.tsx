@@ -1,11 +1,6 @@
 import { useRef, useState } from "react";
 import type { Game } from "../types";
-import {
-  ACCEPT_ATTR,
-  SYSTEMS,
-  detectSystem,
-  titleFromFileName,
-} from "../systems";
+import { SYSTEMS, detectSystem, titleFromFileName } from "../systems";
 import { addGame, deleteGame } from "../storage";
 
 interface LibraryProps {
@@ -69,10 +64,13 @@ export function Library({ games, onPlay, onChanged }: LibraryProps) {
         >
           + Add game
         </button>
+        {/* No `accept` filter on purpose: ROM extensions have no registered
+            MIME type, so iOS Safari's Files picker greys them out if we set
+            one. We let the user pick any file and validate the extension in
+            handleFiles instead. */}
         <input
           ref={inputRef}
           type="file"
-          accept={ACCEPT_ATTR}
           multiple
           hidden
           onChange={(e) => handleFiles(e.target.files)}
