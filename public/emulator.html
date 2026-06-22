@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <title>easy-emu player</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+      }
+      #game {
+        width: 100%;
+        height: 100%;
+      }
+      /* Crisp pixel scaling (no smoothing) for every core. */
+      #game canvas {
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <script>
+      // This page hosts a single EmulatorJS session inside an iframe. The parent
+      // app posts the ROM + config in once we've loaded; isolating the emulator
+      // here means leaving a game (parent unmounts the iframe) tears the whole
+      // session down cleanly, with no parent-page reload. Loading a real same-
+      // origin document (rather than writing into about:blank) avoids an iOS
+      // Safari race where the frame's document gets reset out from under us.
+      (function () {
+        function start(cfg) {
+          window.EJS_player = "#game";
+          window.EJS_core = cfg.core;
+          window.EJS_gameName = cfg.name;
+          window.EJS_color = cfg.color;
+          window.EJS_backgroundColor = "#000";
+          window.EJS_pathtodata = cfg.dataPath;
+          window.EJS_startOnLoaded = true;
+          window.EJS_Buttons = cfg.buttons;
+          window.EJS_gameUrl = URL.createObjectURL(new Blob([cfg.rom]));
+          window.EJS_onGameStart = function () {
+            parent.postMessage({ type: "ejs-started" }, "*");
+          };
+          var s = document.createElement("script");
+          s.src = cfg.dataPath + "loader.js";
+          s.onerror = function () {
+            parent.postMessage({ type: "ejs-error" }, "*");
+          };
+          document.body.appendChild(s);
+        }
+
+        window.addEventListener("message", function (e) {
+          // Only accept the handoff from our own parent window.
+          if (e.source !== window.parent) return;
+          var data = e.data;
+          if (!data || data.type !== "ejs-config") return;
+          start(data);
+        });
+      })();
+    </script>
+  </body>
+</html>

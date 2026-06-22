@@ -42,14 +42,19 @@ export default defineConfig({
         runtimeCaching: [
           {
             // The EmulatorJS engine + cores are pulled from the CDN at runtime.
-            // Cache them on first use (CacheFirst) so each system keeps working
-            // offline once it has been played online at least once. ROMs and
-            // save states already live in IndexedDB, so they're offline too.
+            // StaleWhileRevalidate serves the cached copy instantly (so each
+            // system keeps working offline once played online) while quietly
+            // refreshing it in the background — so a flaky or partial download
+            // self-heals on the next load instead of sticking forever. Only
+            // real 200s are cached (never opaque/partial responses), which is
+            // what was previously corrupting cores. ROMs and save states live
+            // in IndexedDB, so they're offline regardless.
             urlPattern: /^https:\/\/cdn\.emulatorjs\.org\/.*/i,
-            handler: "CacheFirst",
+            handler: "StaleWhileRevalidate",
             options: {
-              cacheName: "emulatorjs-cdn",
-              cacheableResponse: { statuses: [0, 200] },
+              cacheName: "emulatorjs-cdn-v2",
+              cacheableResponse: { statuses: [200] },
+              rangeRequests: true,
               expiration: {
                 maxEntries: 200,
                 maxAgeSeconds: 60 * 60 * 24 * 90, // 90 days
