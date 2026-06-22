@@ -10,6 +10,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      // Temporarily ship a self-destroying service worker: any SW previously
+      // installed on a device unregisters itself and clears its caches. This
+      // recovers users stuck on a stale cache after a redeploy (which can show
+      // a blank page). Re-enable a real offline SW later once stable.
+      selfDestroying: true,
       includeAssets: ["favicon.svg", "icon.svg"],
       manifest: {
         name: "easy-emu",

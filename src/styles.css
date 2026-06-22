@@ -67,6 +67,28 @@ code {
   color: var(--muted);
 }
 
+/* ---- fatal error screen ---- */
+.fatal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+}
+.fatal__msg {
+  max-width: 90%;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #ffb4b4;
+  background: #2a1416;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+
 /* ---- library ---- */
 .library {
   max-width: 880px;
