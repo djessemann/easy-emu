@@ -9,12 +9,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // Auto-update the cached app shell on each deploy (skipWaiting +
+      // clientsClaim under the hood) so users never get stuck on a stale build.
       registerType: "autoUpdate",
-      // Temporarily ship a self-destroying service worker: any SW previously
-      // installed on a device unregisters itself and clears its caches. This
-      // recovers users stuck on a stale cache after a redeploy (which can show
-      // a blank page). Re-enable a real offline SW later once stable.
-      selfDestroying: true,
       includeAssets: ["favicon.svg", "icon.svg"],
       manifest: {
         name: "easy-emu",
@@ -25,6 +22,8 @@ export default defineConfig({
         background_color: "#0f1115",
         display: "standalone",
         orientation: "any",
+        start_url: "./",
+        scope: "./",
         icons: [
           {
             src: "icon.svg",
@@ -35,10 +34,29 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Cache the app shell. The emulator cores are loaded from a remote
-        // CDN at runtime and are intentionally NOT precached here — for true
-        // offline play (the iOS build), self-host the EmulatorJS data folder.
-        globPatterns: ["**/*.{js,css,html,svg,woff2}"],
+        // Precache the whole app shell so the home-screen app boots offline.
+        globPatterns: ["**/*.{js,css,html,svg,woff2,wasm}"],
+        cleanupOutdatedCaches: true,
+        // Single-page app: any offline navigation falls back to the shell.
+        navigateFallback: "index.html",
+        runtimeCaching: [
+          {
+            // The EmulatorJS engine + cores are pulled from the CDN at runtime.
+            // Cache them on first use (CacheFirst) so each system keeps working
+            // offline once it has been played online at least once. ROMs and
+            // save states already live in IndexedDB, so they're offline too.
+            urlPattern: /^https:\/\/cdn\.emulatorjs\.org\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "emulatorjs-cdn",
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 90, // 90 days
+              },
+            },
+          },
+        ],
       },
     }),
   ],
