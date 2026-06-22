@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0f1115" />
+  <!-- handheld body -->
+  <rect x="96" y="80" width="320" height="352" rx="44" fill="#20263a" />
+  <!-- screen -->
+  <rect x="140" y="120" width="232" height="168" rx="14" fill="#0b0d14" />
+  <rect x="156" y="136" width="200" height="136" rx="8" fill="#7cf6a0" />
+  <rect x="156" y="136" width="200" height="136" rx="8" fill="url(#scan)" opacity="0.25" />
+  <!-- d-pad -->
+  <g fill="#0b0d14">
+    <rect x="150" y="350" width="84" height="26" rx="6" />
+    <rect x="179" y="321" width="26" height="84" rx="6" />
+  </g>
+  <!-- buttons -->
+  <circle cx="320" cy="345" r="17" fill="#ff5d6c" />
+  <circle cx="362" cy="383" r="17" fill="#ffd166" />
+  <defs>
+    <linearGradient id="scan" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000" stop-opacity="0" />
+      <stop offset="1" stop-color="#000" stop-opacity="1" />
+    </linearGradient>
+  </defs>
+</svg>
