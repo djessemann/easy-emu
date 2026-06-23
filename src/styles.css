@@ -67,32 +67,6 @@ code {
   color: var(--muted);
 }
 
-/* ---- diagnostics (only shown with ?debug) ---- */
-.diag {
-  margin: 0 16px 12px;
-  border: 1px solid #333;
-  border-radius: 10px;
-  background: #14171f;
-}
-.diag__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-bottom: 1px solid #333;
-}
-.diag__log {
-  margin: 0;
-  padding: 10px 12px;
-  max-height: 40vh;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: 0.72rem;
-  line-height: 1.5;
-  color: var(--muted);
-}
-
 /* ---- fatal error screen ---- */
 .fatal {
   display: flex;

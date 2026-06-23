@@ -7,11 +7,10 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig({
   base: "./",
   build: {
-    // Stable, un-hashed asset filenames. With content-hashed names, a stale
-    // cached index.html (GitHub Pages caches HTML for ~10 min) points at a
+    // Stable, un-hashed asset filenames. With content-hashed names a stale
+    // cached index.html (GitHub Pages caches HTML briefly) can point at a
     // renamed bundle the new deploy deleted → 404 → white screen. Fixed names
-    // mean a slightly-stale shell still resolves to a file that exists, so the
-    // white-screen-on-update failure mode can't happen.
+    // mean a slightly-stale shell still resolves to a file that exists.
     rollupOptions: {
       output: {
         entryFileNames: "assets/[name].js",
@@ -23,13 +22,15 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // Custom service worker (src/sw.ts) so we can serve the app shell
-      // network-first — see that file for why. The self-hosted EmulatorJS
-      // engine + cores (public/ejs-data, built by scripts/vendor-emulatorjs.mjs)
-      // are precached so the app plays fully offline.
-      strategies: "injectManifest",
-      srcDir: "src",
-      filename: "sw.ts",
+      // No offline service worker. A precaching worker on iOS + GitHub Pages
+      // was the repeated cause of blank/white screens (iOS rarely updates or
+      // clears a stuck worker), so we ship a self-destroying worker: it
+      // unregisters any worker still installed on a device and clears its
+      // caches, leaving a plain web app that always loads the latest deploy.
+      // The emulator engine + cores are self-hosted (public/ejs-data) and so
+      // load fast from our own origin and HTTP-cache normally. (For true
+      // offline play, wrap the build with Capacitor — the right place for it.)
+      selfDestroying: true,
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "icon.svg"],
       manifest: {
@@ -51,14 +52,6 @@ export default defineConfig({
             purpose: "any maskable",
           },
         ],
-      },
-      injectManifest: {
-        // Precache only the self-hosted engine + cores (stable filenames). The
-        // app shell is intentionally excluded and handled network-first at
-        // runtime, so it can never serve a stale shell pointing at missing JS.
-        globDirectory: "dist",
-        globPatterns: ["ejs-data/**/*.{js,css,json,data,wasm}"],
-        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
       },
     }),
   ],

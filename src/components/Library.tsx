@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from "react";
 import type { Game } from "../types";
 import { SYSTEMS, detectSystem, titleFromFileName } from "../systems";
 import { addGame, deleteGame, setFavorite } from "../storage";
-import { DEBUG_ENABLED, clearDiag, readDiag } from "../diag";
 
 interface LibraryProps {
   games: Game[];
@@ -36,7 +35,6 @@ export function Library({
   const inputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
-  const [diag, setDiag] = useState<string[]>(() => readDiag());
 
   const visible = useMemo(() => {
     if (filter === "favorites") {
@@ -116,26 +114,6 @@ export function Library({
       </header>
 
       {importError && <p className="library__error">{importError}</p>}
-
-      {DEBUG_ENABLED && (
-        <section className="diag">
-          <div className="diag__head">
-            <strong>Diagnostics</strong>
-            <button
-              className="btn btn--ghost"
-              onClick={() => {
-                clearDiag();
-                setDiag([]);
-              }}
-            >
-              Clear
-            </button>
-          </div>
-          <pre className="diag__log">
-            {diag.length ? diag.join("\n") : "(nothing recorded yet)"}
-          </pre>
-        </section>
-      )}
 
       {games.length > 0 && (
         <nav className="filters" aria-label="Filter games">

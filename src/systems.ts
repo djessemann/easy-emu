@@ -40,12 +40,7 @@ export const SYSTEMS: Record<SystemId, SystemDef> = {
   },
 };
 
-export const SYSTEM_LIST: SystemDef[] = Object.values(SYSTEMS);
-
-/** All accepted file extensions, as an `accept` string for <input type=file>. */
-export const ACCEPTED_EXTENSIONS = SYSTEM_LIST.flatMap((s) => s.extensions);
-
-export const ACCEPT_ATTR = ACCEPTED_EXTENSIONS.map((e) => `.${e}`).join(",");
+const SYSTEM_LIST: SystemDef[] = Object.values(SYSTEMS);
 
 /**
  * Guess a system from a file name's extension. Returns null when the extension

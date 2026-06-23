@@ -55,10 +55,6 @@ export async function deleteGame(id: string): Promise<void> {
   await database.delete("states", id); // drop its save state too
 }
 
-export async function getGame(id: string): Promise<Game | undefined> {
-  return (await db()).get("games", id);
-}
-
 /** Star / unstar a game (Favorites filter). No-op if the game is gone. */
 export async function setFavorite(id: string, favorite: boolean): Promise<void> {
   const database = await db();
@@ -83,10 +79,6 @@ export async function saveState(gameId: string, data: Blob): Promise<void> {
 
 export async function getStateBlob(gameId: string): Promise<Blob | undefined> {
   return (await (await db()).get("states", gameId))?.data;
-}
-
-export async function deleteState(gameId: string): Promise<void> {
-  await (await db()).delete("states", gameId);
 }
 
 /** Ids of all games that currently have a saved state (for library badges). */
