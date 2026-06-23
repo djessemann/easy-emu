@@ -11,25 +11,37 @@ self.skipWaiting();
 clientsClaim();
 cleanupOutdatedCaches();
 
-// Serve navigations NETWORK-FIRST. This is the fix for the "white screen after
-// every update": a precache (cache-first) shell can serve an old index.html
-// that points at JS bundles the new deploy already renamed, giving a blank
-// page. Network-first means that whenever we're online we always load the
-// freshly deployed shell; we fall back to the cached shell only when offline.
-// Registered before the precache route so it wins for navigation requests.
+// Precache ONLY the self-hosted EmulatorJS engine + cores (see
+// vite.config injectManifest.globPatterns), so games play offline from the
+// first launch. The app shell is deliberately NOT precached — it's handled by
+// the runtime routes below, which never go stale-broken.
+precacheAndRoute(self.__WB_MANIFEST);
+
+// The app shell (index.html) is served NETWORK-FIRST and with the HTTP cache
+// bypassed (`cache: "reload"`), so an online visit ALWAYS loads the freshly
+// deployed shell — never a stale one pointing at renamed bundles (the cause of
+// the white screen on update). Offline, it falls back to the last cached shell.
 registerRoute(
   new NavigationRoute(
-    new NetworkFirst({ cacheName: "shell", networkTimeoutSeconds: 3 }),
+    new NetworkFirst({
+      cacheName: "shell",
+      networkTimeoutSeconds: 3,
+      fetchOptions: { cache: "reload" },
+    }),
   ),
 );
 
-// Everything else — the app's hashed assets and the self-hosted EmulatorJS
-// engine + cores under /ejs-data — is precached and served from cache.
-precacheAndRoute(self.__WB_MANIFEST);
+// The app's own static assets (JS/CSS/icons). Stale-while-revalidate: served
+// instantly from cache (so it works offline) while refreshing in the
+// background. A cache miss just fetches from the network and stores it.
+registerRoute(
+  ({ url, request }) =>
+    url.origin === self.location.origin && request.destination !== "document",
+  new StaleWhileRevalidate({ cacheName: "assets" }),
+);
 
-// The EmulatorJS CDN is only a fallback now (cores are self-hosted and tried
-// locally first). Cache whatever it does serve so it still works offline after
-// the first fetch; only real 200s are cached, never opaque/partial responses.
+// The EmulatorJS CDN is only a fallback (cores are self-hosted and tried
+// locally first). Cache whatever it serves so it works offline afterwards.
 registerRoute(
   ({ url }) => url.origin === "https://cdn.emulatorjs.org",
   new StaleWhileRevalidate({
